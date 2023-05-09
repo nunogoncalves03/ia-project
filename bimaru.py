@@ -2,9 +2,9 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes já definidas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
-# 00000 Nome1
-# 00000 Nome2
+# Grupo 56:
+# 102802 Fabio Mata
+# 103392 Nuno Goncalves
 
 import sys
 from search import (
@@ -16,6 +16,7 @@ from search import (
     greedy_search,
     recursive_best_first_search,
 )
+from typing import List
 
 
 class BimaruState:
@@ -35,6 +36,11 @@ class BimaruState:
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
+    def __init__(self, row_hints: List[int], column_hints: List[int], board: List[List[str]]):
+        self.board = board
+        self.row_hints = row_hints
+        self.column_hints = column_hints
+
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         # TODO
@@ -52,6 +58,18 @@ class Board:
         # TODO
         pass
 
+    def __str__(self):
+        string = ""
+
+        for row in self.board:
+            for letter in row:
+                if letter == '':
+                    letter = ' '
+                string += letter
+            string += '\n'
+        
+        return string
+
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -63,9 +81,29 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        # TODO
-        pass
 
+
+        row_hints = sys.stdin.readline().split('\t')[1:]  # ignore ROW keyword
+        row_hints = [int(x) for x in row_hints]
+
+        column_hints = sys.stdin.readline().split('\t')[1:]  # ignore COLUMN keyword
+        column_hints = [int(x) for x in column_hints]
+
+        hints_number = int(sys.stdin.readline())
+        
+        board = [["" for _ in range(10)] for _ in range(10)]  # 10x10 empty board
+
+        for i in range(hints_number):
+            hint = sys.stdin.readline().strip().split('\t')[1:]
+            row = int(hint[0])
+            column = int(hint[1])
+            letter = hint[2]
+
+            board[row][column] = letter
+
+
+        return Board(row_hints, column_hints, board)
+    
     # TODO: outros metodos da classe
 
 
@@ -110,4 +148,6 @@ if __name__ == "__main__":
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
-    pass
+    board_instance = Board.parse_instance()
+
+    print(board_instance, end='')

@@ -48,8 +48,18 @@ class Board:
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-
-        return self.board[row][col]
+        if row >= 0 and row <= Board.ROWS_NUMBER - 1:
+            if col >= 0 and col <= Board.COLUMNS_NUMBER - 1:
+                return self.board[row][col]
+        
+        return Board.OUT_OF_BOUNDS
+    
+    def place_symbol(self, symbol: str, row: int, col: int):
+        """Places the given symbol in the given position if valid,
+        does nothing otherwise. """
+        if row >= 0 and row <= Board.ROWS_NUMBER - 1:
+            if col >= 0 and col <= Board.COLUMNS_NUMBER - 1:
+                self.board[row][col] = symbol
 
     def adjacent_vertical_values(self, row: int, col: int) -> Tuple[str, str]:
         """Devolve os valores imediatamente acima e abaixo,
@@ -85,123 +95,135 @@ class Board:
         return (top_left, top_right, bottom_right, bottom_left)
 
 
-    def place_water_around(self, row: int, col: int):
-        """Places water around the given cell
+    def process_cell(self, row: int, col: int):
+        """Places water and $ around the given cell
         accordingly to the symbol it holds. """
 
         symbol = self.board[row][col]
         
         if symbol in ('C', 'c'):
-            self.place_water_around_C(row, col)
+            self.process_C(row, col)
         elif symbol in ('M', 'm'):
-            pass
+            self.process_M(row, col)
         elif symbol in ('T', 't', 'B', 'b'):
-            self.place_water_around_T_B(symbol, row, col)        
+            self.process_T_B(symbol, row, col)        
         elif symbol in ('L', 'l','R', 'r'):
-            self.place_water_around_R_L(symbol, row, col)
+            self.process_L_R(symbol, row, col)
 
-    def place_water_around_T_B(self, symbol: str, row: int, col: int):
+    def process_T_B(self, symbol: str, row: int, col: int):
         # upper row
-        if row > 0:
-            if col > 0:
-                self.board[row - 1][col - 1] = 'w'
-            # only cover the cell above the symbol if it's T
-            if symbol in ('T', 't'):
-                self.board[row - 1][col] = 'w'
-            if col < Board.COLUMNS_NUMBER - 1:
-                self.board[row - 1][col + 1] = 'w'
+        self.place_symbol('w', row - 1, col - 1)
+        # only cover the cell above the symbol if it's T
+        if symbol in ('T', 't'):
+            self.place_symbol('w', row - 1, col)
+        else:
+            self.place_symbol('$', row - 1, col)
+        self.place_symbol('w', row - 1, col + 1)
+        
+        # only cover the further side cells above the symbol if it's B
+        if symbol in ('B', 'b'):
+            self.place_symbol('w', row - 2, col - 1)
+            self.place_symbol('w', row - 2, col + 1)
+
+        # to the left
+        self.place_symbol('w', row, col - 1)
+
+        # to the right
+        self.place_symbol('w', row, col + 1)
+
+        # inferior row
+        self.place_symbol('w', row + 1, col - 1)
+        # only cover the cell underneath the symbol if it's B
+        if symbol in ('B', 'b'):
+            self.place_symbol('w', row + 1, col)
+        else:
+            self.place_symbol('$', row + 1, col)
+        self.place_symbol('w', row + 1, col + 1)
+        
+        # only cover the further side cells underneath the symbol if it's T
+        if symbol in ('T', 't'):
+            self.place_symbol('w', row + 2, col - 1)
+            self.place_symbol('w', row + 2, col + 1)
+
+
+    def process_L_R(self, symbol: str, row: int, col: int):
+        # upper row
+        # only cover the further left side cell above the symbol if it's R
+        if symbol in ('R', 'r'):
+            self.place_symbol('w', row - 1, col - 2)
+        self.place_symbol('w', row - 1, col - 1)
+        self.place_symbol('w', row - 1, col)
+        self.place_symbol('w', row - 1, col + 1)
+        # only cover the further right side cell above the symbol if it's L
+        if symbol in ('L', 'l'):
+            self.place_symbol('w', row - 1, col + 2)
+
+        # to the right
+        if symbol in ('R', 'r'):
+            self.place_symbol('w', row, col + 1)
+        else:
+            self.place_symbol('$', row, col + 1)
             
-            # only cover the further side cells above the symbol if it's B
-            if symbol in ('B', 'b') and row > 1:
-                if col > 0:
-                    self.board[row - 2][col - 1] = 'w'
-                if col < Board.COLUMNS_NUMBER - 1:
-                    self.board[row - 2][col + 1] = 'w'
         # to the left
-        if col > 0:
-            self.board[row][col - 1] = 'w'
-        # to the right
-        if col < Board.COLUMNS_NUMBER - 1:
-            self.board[row][col + 1] = 'w'
+        if symbol in ('L', 'l'):
+            self.place_symbol('w', row, col - 1)
+        else:
+            self.place_symbol('$', row, col - 1)
+
         # inferior row
-        if row < Board.COLUMNS_NUMBER - 1:
-            if col > 0:
-                self.board[row + 1][col - 1] = 'w'
-            # only cover the cell underneath the symbol if it's B
-            if symbol in ('B', 'b'):
-                self.board[row + 1][col] = 'w'
-            if col < Board.COLUMNS_NUMBER - 1:
-                self.board[row + 1][col + 1] = 'w'
+        # only cover the further left side cell underneath the symbol if it's R
+        if symbol in ('R', 'r'):
+            self.place_symbol('w', row + 1, col - 2)
+        self.place_symbol('w', row + 1, col - 1)
+        self.place_symbol('w', row + 1, col)
+        self.place_symbol('w', row + 1, col + 1)
+        # only cover the further right side cell underneath the symbol if it's L
+        if symbol in ('L', 'l'):
+            self.place_symbol('w', row + 1, col + 2)
 
-            # only cover the further side cells underneath the symbol if it's T
-            if symbol in ('T', 't') and row < Board.COLUMNS_NUMBER - 2:
-                    if col > 0:
-                        self.board[row + 2][col - 1] = 'w'
-                    if col < Board.COLUMNS_NUMBER - 1:
-                        self.board[row + 2][col + 1] = 'w'
-
-    def place_water_around_R_L(self, symbol: str, row: int, col: int):
+    def process_C(self, row: int, col: int):
         # upper row
-        if row > 0:
-            # only cover the further left side cell above the symbol if it's R
-            if symbol in ('R', 'r') and col > 1:
-                self.board[row - 1][col - 2] = 'w'
-
-            if col > 0:
-                self.board[row - 1][col - 1] = 'w'
-            self.board[row - 1][col] = 'w'
-            if col < Board.COLUMNS_NUMBER - 1:
-                self.board[row - 1][col + 1] = 'w'
-
-            # only cover the further right side cell above the symbol if it's L
-            if symbol in ('L', 'l') and col < Board.COLUMNS_NUMBER - 2:
-                self.board[row - 1][col + 2] = 'w'
-        # to the right
-        if symbol in ('R', 'r') and col < Board.COLUMNS_NUMBER - 1:
-            self.board[row][col + 1] = 'w'
+        self.place_symbol('w', row - 1, col - 1)
+        self.place_symbol('w', row - 1, col)
+        self.place_symbol('w', row - 1, col + 1)
         # to the left
-        if symbol in ('L', 'l') and col > 0:
-            self.board[row][col - 1] = 'w'
-        # inferior row
-        if row < Board.COLUMNS_NUMBER - 1:
-            # only cover the further left side cell underneath the symbol if it's R
-            if symbol in ('R', 'r') and col > 1:
-                self.board[row + 1][col - 2] = 'w'
-
-            if col > 0:
-                self.board[row + 1][col - 1] = 'w'
-            self.board[row + 1][col] = 'w'
-            if col < Board.COLUMNS_NUMBER - 1:
-                self.board[row + 1][col + 1] = 'w'
-
-            # only cover the further right side cell underneath the symbol if it's L
-            if symbol in ('L', 'l') and col < Board.COLUMNS_NUMBER - 2:
-                self.board[row + 1][col + 2] = 'w'
-
-    def place_water_around_C(self, row: int, col: int):
-        # upper row
-        if row > 0:
-            if col > 0:
-                self.board[row - 1][col - 1] = 'w'
-            self.board[row - 1][col] = 'w'
-            if col < Board.COLUMNS_NUMBER - 1:
-                self.board[row - 1][col + 1] = 'w'
-        # to the left
-        if col > 0:
-            self.board[row][col - 1] = 'w'
+        self.place_symbol('w', row, col - 1)
         # to the right
-        if col < Board.COLUMNS_NUMBER - 1:
-            self.board[row][col + 1] = 'w'
+        self.place_symbol('w', row, col + 1)
         # inferior row
-        if row < Board.COLUMNS_NUMBER - 1:
-            if col > 0:
-                self.board[row + 1][col - 1] = 'w'
-            self.board[row + 1][col] = 'w'
-            if col < Board.COLUMNS_NUMBER - 1:
-                self.board[row + 1][col + 1] = 'w'
+        self.place_symbol('w', row + 1, col - 1)
+        self.place_symbol('w', row + 1, col)
+        self.place_symbol('w', row + 1, col + 1)
 
-    def place_water_around_M(self, symbol: str, row: int, col: int):
-        pass
+    def process_M(self, row: int, col: int):
+        vertical_adj_values = self.adjacent_vertical_values(row, col)
+        horizontal_adj_values = self.adjacent_horizontal_values(row, col)
+
+        # check if M is part of a horizontally displayed ship
+        if 'W' in vertical_adj_values or 'w' in vertical_adj_values or \
+            row == Board.ROWS_NUMBER - 1 or row == 0 or \
+            any(map(lambda x: x not in ('', 'W', 'w', Board.OUT_OF_BOUNDS),
+                    horizontal_adj_values)):
+            if horizontal_adj_values[0] == '':
+                self.place_symbol('$', row, col - 1)
+            if horizontal_adj_values[1] == '':
+                self.place_symbol('$', row, col + 1)
+            for i in (row - 1, row + 1):
+                for j in (col - 2, col - 1, col, col + 1, col + 2):
+                    self.place_symbol('w', i, j)
+        # check if M is part of a vertically displayed ship
+        elif 'W' in horizontal_adj_values or 'w' in horizontal_adj_values or \
+            col == Board.COLUMNS_NUMBER - 1 or col == 0 or \
+            any(map(lambda x: x not in ('', 'W', 'w', Board.OUT_OF_BOUNDS),
+                    vertical_adj_values)):
+            if vertical_adj_values[0] == '':
+                self.place_symbol('$', row - 1, col)
+            if vertical_adj_values[1] == '':
+                self.place_symbol('$', row + 1, col)
+            for i in (row - 2, row - 1, row, row + 1, row + 2):
+                for j in (col - 1, col + 1):
+                    self.place_symbol('w', i, j)
+
 
     def place_water_row(self, row: int):
         symbol_counter = 0
@@ -253,6 +275,26 @@ class Board:
                 if self.board[row][col] == '':
                     self.board[row][col] = '$'
 
+    def replace_placeholders(self):
+        for row in range(Board.ROWS_NUMBER):
+            for col in range(Board.COLUMNS_NUMBER):
+                if self.get_value(row, col) == '$':
+                    if self.adjacent_horizontal_values(row, col)[1] in ('$', 'M', 'm', 'R', 'r'):
+                        pass
+                        # i = 1
+                        # while self.get_value(row, col + i) == '$':
+                        #     self.board[row][col] = 'l'
+                        #     self.board[row][col + 1] = 'm'
+                        #     i += 1
+
+                        # if i != 1:
+                        #     self.board[row][col + i - 1] = 'r'
+
+                    elif self.adjacent_vertical_values(row, col)[0] in ('$', 'M', 'm', 'B', 'b'):
+                        pass
+
+                    else:
+                        self.board[row][col] = 'c'
 
     def __str__(self):
         """Returns a string representation of the Board as described in
@@ -349,7 +391,11 @@ if __name__ == "__main__":
 
     for i in range(Board.ROWS_NUMBER):
         for j in range(Board.COLUMNS_NUMBER):
-            board_instance.place_water_around(i, j)
+            board_instance.process_cell(i, j)
+
+    for i in range(Board.ROWS_NUMBER):
+        for j in range(Board.COLUMNS_NUMBER):
+            board_instance.process_cell(i, j)
 
     for _ in range(20):
         for i in range(Board.ROWS_NUMBER):
@@ -357,5 +403,7 @@ if __name__ == "__main__":
             board_instance.place_water_column(i)
             board_instance.place_boats_row(i)
             board_instance.place_boats_column(i)
+
+    # board_instance.replace_placeholders()
 
     print(board_instance, end="\n---------------\n")

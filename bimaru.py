@@ -278,23 +278,71 @@ class Board:
     def replace_placeholders(self):
         for row in range(Board.ROWS_NUMBER):
             for col in range(Board.COLUMNS_NUMBER):
-                if self.get_value(row, col) == '$':
-                    if self.adjacent_horizontal_values(row, col)[1] in ('$', 'M', 'm', 'R', 'r'):
-                        pass
-                        # i = 1
-                        # while self.get_value(row, col + i) == '$':
-                        #     self.board[row][col] = 'l'
-                        #     self.board[row][col + 1] = 'm'
-                        #     i += 1
+                if self.get_value(row, col) == "$":
 
-                        # if i != 1:
-                        #     self.board[row][col + i - 1] = 'r'
+                    if self.adjacent_horizontal_values(row, col)[0] == "L" \
+                        or (self.adjacent_horizontal_values(row, col)[1] not in (
+                        "",
+                        "w",
+                        "W",
+                        Board.OUT_OF_BOUNDS) and self.adjacent_horizontal_values(row, col)[0] not in ("", "$")):
+                        if self.adjacent_horizontal_values(row, col)[0] != "L":
+                            self.place_symbol("l", row, col)
 
-                    elif self.adjacent_vertical_values(row, col)[0] in ('$', 'M', 'm', 'B', 'b'):
-                        pass
+                        i = 1
+                        while self.get_value(row, col + i) in ("$", "m", "M"):
+                            if self.get_value(row, col + i) == "M":
+                                i += 1
+                                continue
 
-                    else:
-                        self.board[row][col] = 'c'
+                            self.place_symbol("m", row, col + i)
+                            i += 1
+
+                        if self.get_value(row, col + i) == "R":
+                            continue
+
+                        if self.get_value(row, col + i) != "":
+                            self.place_symbol("r", row, col + i - 1)
+
+                    elif self.adjacent_vertical_values(row, col)[0] == "T" \
+                        or (self.adjacent_vertical_values(row, col)[1] not in (
+                        "",
+                        "w",
+                        "W",
+                        Board.OUT_OF_BOUNDS) and self.adjacent_vertical_values(row, col)[0] not in ("", "$")):
+                        if self.adjacent_vertical_values(row, col)[0] != "T":
+                            self.place_symbol("t", row, col)
+
+                        i = 1
+                        while self.get_value(row + i, col) in ("$", "m", "M"):
+                            if self.get_value(row + i, col) == "M":
+                                i += 1
+                                continue
+
+                            self.place_symbol("m", row + i, col)
+                            i += 1
+
+                        if self.get_value(row + i, col) == "B":
+                            continue
+
+                        if self.get_value(row + i, col) != "":
+                            self.place_symbol("b", row + i - 1, col)
+
+                    elif (
+                        all(
+                            value in ("w", "W", Board.OUT_OF_BOUNDS)
+                            for value in self.adjacent_horizontal_values(row, col)
+                        )
+                        and all(
+                            value in ("w", "W", Board.OUT_OF_BOUNDS)
+                            for value in self.adjacent_vertical_values(row, col)
+                        )
+                        and all(
+                            value in ("w", "W", Board.OUT_OF_BOUNDS)
+                            for value in self.adjacent_diagonal_values(row, col)
+                        )
+                    ):
+                        self.place_symbol("c", row, col)
 
     def __str__(self):
         """Returns a string representation of the Board as described in
@@ -404,6 +452,8 @@ if __name__ == "__main__":
             board_instance.place_boats_row(i)
             board_instance.place_boats_column(i)
 
-    # board_instance.replace_placeholders()
+    print(board_instance, end="\n---------------\n")
+
+    board_instance.replace_placeholders()
 
     print(board_instance, end="\n---------------\n")

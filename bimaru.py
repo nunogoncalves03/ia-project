@@ -41,13 +41,20 @@ class Board:
     ROWS_NUMBER = 10
     COLUMNS_NUMBER = 10
     OUT_OF_BOUNDS = "x"
+    HORIZONTAL_DIRECTION = 0
+    VERTICAL_DIRECTION = 1
 
     def __init__(
-        self, row_hints: List[int], column_hints: List[int], board: List[List[str]]
+        self,
+        row_hints: List[int],
+        column_hints: List[int],
+        board: List[List[str]],
+        boats: List[int],
     ):
-        self.board = board
+        self.board = [[item for item in row] for row in board]
         self.row_hints = row_hints
         self.column_hints = column_hints
+        self.boats = [count for count in boats]
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -69,52 +76,80 @@ class Board:
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
 
-        return (
-            self.board[row - 1][col] if row > 0 else Board.OUT_OF_BOUNDS,
-            self.board[row + 1][col]
-            if row < Board.ROWS_NUMBER - 1
-            else Board.OUT_OF_BOUNDS,
-        )
+        return (self.get_value(row - 1, col), self.get_value(row + 1, col))
 
     def adjacent_horizontal_values(self, row: int, col: int) -> Tuple[str, str]:
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
 
-        return (
-            self.board[row][col - 1] if col > 0 else Board.OUT_OF_BOUNDS,
-            self.board[row][col + 1]
-            if col < Board.COLUMNS_NUMBER - 1
-            else Board.OUT_OF_BOUNDS,
-        )
+        return (self.get_value(row, col - 1), self.get_value(row, col + 1))
 
     def adjacent_diagonal_values(self, row: int, col: int) -> Tuple[str, str, str, str]:
         """Devolve os valores em cima à esquerda,
         em cima à direita, em baixo à direita e em baixo à esquerda,
         respectivamente."""
 
-        top_left = (
-            self.board[row - 1][col - 1] if row > 0 and col > 0 else Board.OUT_OF_BOUNDS
+        return (
+            self.get_value(row - 1, col - 1),
+            self.get_value(row - 1, col + 1),
+            self.get_value(row + 1, col + 1),
+            self.get_value(row + 1, col - 1),
         )
 
-        top_right = (
-            self.board[row - 1][col + 1]
-            if row > 0 and col < Board.COLUMNS_NUMBER - 1
-            else Board.OUT_OF_BOUNDS
-        )
+    def get_empty_cells(self) -> int:
+        """Returns the number of empty cells"""
+        count = 0
+        for row in range(Board.ROWS_NUMBER):
+            for col in range(Board.COLUMNS_NUMBER):
+                if self.get_value(row, col) == "":
+                    count += 1
 
-        bottom_right = (
-            self.board[row + 1][col + 1]
-            if row < Board.ROWS_NUMBER - 1 and col < Board.COLUMNS_NUMBER - 1
-            else Board.OUT_OF_BOUNDS
-        )
+        return count
 
-        bottom_left = (
-            self.board[row + 1][col - 1]
-            if row < Board.ROWS_NUMBER - 1 and col > 0
-            else Board.OUT_OF_BOUNDS
-        )
+    def get_boats_row(self, row) -> Tuple[int, int]:
+        """TODO"""
 
-        return (top_left, top_right, bottom_right, bottom_left)
+        count = 0
+        placeholder_count = 0
+
+        for col in range(Board.COLUMNS_NUMBER):
+            if self.get_value(row, col) not in ("", "w", "W", Board.OUT_OF_BOUNDS):
+                count += 1
+
+                if self.get_value(row, col) == "$":
+                    placeholder_count += 1
+
+        return count, placeholder_count
+
+    def get_boats_col(self, col) -> Tuple[int, int]:
+        """TODO"""
+
+        count = 0
+        placeholder_count = 0
+
+        for row in range(Board.ROWS_NUMBER):
+            if self.get_value(row, col) not in ("", "w", "W", Board.OUT_OF_BOUNDS):
+                count += 1
+
+                if self.get_value(row, col) == "$":
+                    placeholder_count += 1
+
+        return count, placeholder_count
+
+    def is_goal(self) -> bool:
+        """TODO"""
+
+        if self.get_empty_cells() == 0 and self.boats == [0, 0, 0, 0]:
+            for i in range(Board.ROWS_NUMBER):
+                if (
+                    self.get_boats_row(i)[0] != self.row_hints[i]
+                    or self.get_boats_col(i)[0] != self.column_hints[i]
+                ):
+                    return False
+
+            return True
+
+        return False
 
     def process_cell(self, row: int, col: int):
         """Places water and $ around the given cell
@@ -130,6 +165,8 @@ class Board:
             self.process_T_B(symbol, row, col)
         elif symbol in ("L", "l", "R", "r"):
             self.process_L_R(symbol, row, col)
+        elif symbol == "$":
+            self.process_placeholder(row, col)
 
     def process_T_B(self, symbol: str, row: int, col: int):
         # upper row
@@ -219,6 +256,12 @@ class Board:
         vertical_adj_values = self.adjacent_vertical_values(row, col)
         horizontal_adj_values = self.adjacent_horizontal_values(row, col)
 
+        # place water diagonally
+        self.place_symbol("w", row - 1, col - 1)
+        self.place_symbol("w", row - 1, col + 1)
+        self.place_symbol("w", row + 1, col + 1)
+        self.place_symbol("w", row + 1, col - 1)
+
         # check if M is part of a horizontally displayed ship
         if (
             "W" in vertical_adj_values
@@ -259,6 +302,13 @@ class Board:
             for i in (row - 2, row - 1, row, row + 1, row + 2):
                 for j in (col - 1, col + 1):
                     self.place_symbol("w", i, j)
+
+    def process_placeholder(self, row: int, col: int):
+        # diagonals
+        self.place_symbol("w", row - 1, col - 1)
+        self.place_symbol("w", row - 1, col + 1)
+        self.place_symbol("w", row + 1, col + 1)
+        self.place_symbol("w", row + 1, col - 1)
 
     def place_water_row(self, row: int):
         symbol_counter = 0
@@ -310,6 +360,160 @@ class Board:
                 if self.board[row][col] == "":
                     self.board[row][col] = "$"
 
+    def place_boat(self, row: int, col: int, size: int, direction: int) -> Board:
+        """TODO"""
+
+        new_board = Board(self.row_hints, self.column_hints, self.board, self.boats)
+
+        if size == 1:
+            new_board.place_symbol("c", row, col)
+
+            new_board.boats[size - 1] -= 1
+            new_board.cleanup()
+            return new_board
+
+        for i in range(0, size):
+            if direction == Board.HORIZONTAL_DIRECTION:
+                if i == 0:
+                    new_board.place_symbol("l", row, col)
+                elif i == size - 1:
+                    new_board.place_symbol("r", row, col)
+                else:
+                    new_board.place_symbol("m", row, col)
+
+                col += 1
+
+            elif direction == Board.VERTICAL_DIRECTION:
+                if i == 0:
+                    new_board.place_symbol("t", row, col)
+                elif i == size - 1:
+                    new_board.place_symbol("b", row, col)
+                else:
+                    new_board.place_symbol("m", row, col)
+
+                row += 1
+
+        new_board.boats[size - 1] -= 1
+        new_board.cleanup()
+        return new_board
+
+    def calculate_placeable_boats(self) -> List[Tuple[int, int, int, int]]:
+        placeable_boats = []
+        size = 4
+
+        while size > 0:
+            if self.boats[size - 1] == 0:
+                size -= 1
+                continue
+
+            possible_circles = []
+
+            # horizontal
+            for row in range(Board.ROWS_NUMBER):
+                total_boats, placeholder_count = self.get_boats_row(row)
+
+                if size + total_boats - placeholder_count > self.row_hints[row]:
+                    continue
+
+                override_count = 0
+                for col in range(Board.COLUMNS_NUMBER):
+                    if self.get_value(row, col) in (
+                        "",
+                        "$",
+                        "l",
+                        "L",
+                    ) and self.get_value(row, col - 1) not in ("$", "L", "l"):
+                        if self.get_value(row, col) == "$":
+                            override_count += 1
+
+                        i = 1
+                        while i < size and self.get_value(row, col + i) in (
+                            "",
+                            "$",
+                            "m",
+                            "M",
+                        ):
+                            if self.get_value(row, col + i) == "$":
+                                override_count += 1
+
+                            i += 1
+
+                        if (
+                            i == size
+                            and self.get_value(row, col + i)
+                            in ("", "w", "W", Board.OUT_OF_BOUNDS)
+                            and self.get_value(row, col + i + 1) not in ("r", "R")
+                            and total_boats + size - override_count
+                            <= self.row_hints[row]
+                        ):
+                            if size == 1 and self.get_value(row, col) in ("", "$"):
+                                possible_circles.append((row, col))
+                            elif size != 1 and self.get_value(row, col + i - 1) in (
+                                "",
+                                "$",
+                                "r",
+                                "R",
+                            ):
+                                placeable_boats.append(
+                                    (row, col, size, Board.HORIZONTAL_DIRECTION)
+                                )
+
+            # vertical
+            for col in range(Board.COLUMNS_NUMBER):
+                total_boats, placeholder_count = self.get_boats_col(col)
+                if size + total_boats - placeholder_count > self.column_hints[col]:
+                    continue
+
+                override_count = 0
+                for row in range(Board.ROWS_NUMBER):
+                    if self.get_value(row, col) in (
+                        "",
+                        "$",
+                        "t",
+                        "T",
+                    ) and self.get_value(row - 1, col) not in ("$", "T", "t"):
+                        if self.get_value(row, col) == "$":
+                            override_count += 1
+
+                        i = 1
+                        while i < size and self.get_value(row + i, col) in (
+                            "",
+                            "$",
+                            "m",
+                            "M",
+                        ):
+                            if self.get_value(row + i, col) == "$":
+                                override_count += 1
+
+                            i += 1
+
+                        if (
+                            i == size
+                            and self.get_value(row + i, col)
+                            in ("", "w", "W", Board.OUT_OF_BOUNDS)
+                            and self.get_value(row + i + 1, col) not in ("b", "B")
+                            and total_boats + size - override_count
+                            <= self.column_hints[col]
+                        ):
+                            if size == 1 and self.get_value(row, col) in ("", "$"):
+                                if (row, col) in possible_circles:
+                                    placeable_boats.append(
+                                        (row, col, size, Board.VERTICAL_DIRECTION)
+                                    )
+                            elif size != 1 and self.get_value(row + i - 1, col) in (
+                                "",
+                                "$",
+                                "b",
+                                "B",
+                            ):
+                                placeable_boats.append(
+                                    (row, col, size, Board.VERTICAL_DIRECTION)
+                                )
+
+            size -= 1
+
+        return placeable_boats
+
     def replace_placeholders(self):
         for row in range(Board.ROWS_NUMBER):
             for col in range(Board.COLUMNS_NUMBER):
@@ -320,46 +524,70 @@ class Board:
                         and self.adjacent_horizontal_values(row, col)[0]
                         not in ("", "$")
                     ):
-                        if self.adjacent_horizontal_values(row, col)[0] != "L":
-                            self.place_symbol("l", row, col)
-
+                        size = 0
                         i = 1
                         while self.get_value(row, col + i) in ("$", "m", "M"):
-                            if self.get_value(row, col + i) == "M":
-                                i += 1
-                                continue
-
-                            self.place_symbol("m", row, col + i)
                             i += 1
 
-                        if self.get_value(row, col + i) == "R":
-                            continue
-
-                        if self.get_value(row, col + i) != "":
+                        if self.get_value(row, col + i) in (
+                            "w",
+                            "W",
+                            Board.OUT_OF_BOUNDS,
+                        ):
                             self.place_symbol("r", row, col + i - 1)
+                            i -= 1
+
+                        if self.get_value(row, col + i) in ("r", "R"):
+                            size = 1
+                            while self.get_value(row, col + i - 1) in ("$", "m", "M"):
+                                self.place_symbol("m", row, col + i - 1)
+                                i -= 1
+                                size += 1
+
+                            if self.get_value(row, col + i - 1) != "L":
+                                self.place_symbol("l", row, col + i)
+                            elif self.get_value(row, col + i - 1) == "L":
+                                size += 1
+
+                        if size > 0 and size < 5:
+                            self.boats[size - 1] -= 1
 
                     elif self.adjacent_vertical_values(row, col)[0] == "T" or (
                         self.adjacent_vertical_values(row, col)[1]
                         not in ("", "w", "W", Board.OUT_OF_BOUNDS)
                         and self.adjacent_vertical_values(row, col)[0] not in ("", "$")
                     ):
-                        if self.adjacent_vertical_values(row, col)[0] != "T":
-                            self.place_symbol("t", row, col)
-
+                        size = 0
                         i = 1
                         while self.get_value(row + i, col) in ("$", "m", "M"):
-                            if self.get_value(row + i, col) == "M":
-                                i += 1
-                                continue
-
-                            self.place_symbol("m", row + i, col)
                             i += 1
 
-                        if self.get_value(row + i, col) == "B":
-                            continue
-
-                        if self.get_value(row + i, col) != "":
+                        if self.get_value(row + i, col) in (
+                            "w",
+                            "W",
+                            Board.OUT_OF_BOUNDS,
+                        ):
                             self.place_symbol("b", row + i - 1, col)
+                            i -= 1
+
+                        if self.get_value(row + i, col) in ("b", "B"):
+                            size = 1
+                            while self.get_value(row + i - 1, col) in (
+                                "$",
+                                "m",
+                                "M",
+                            ):
+                                self.place_symbol("m", row + i - 1, col)
+                                i -= 1
+                                size += 1
+
+                            if self.get_value(row + i - 1, col) != "T":
+                                self.place_symbol("t", row + i, col)
+                            elif self.get_value(row + i - 1, col) == "T":
+                                size += 1
+
+                        if size > 0 and size < 5:
+                            self.boats[size - 1] -= 1
 
                     elif (
                         all(
@@ -376,6 +604,36 @@ class Board:
                         )
                     ):
                         self.place_symbol("c", row, col)
+                        self.boats[0] -= 1
+
+    def cleanup(self):
+        while True:
+            str = self.__str__()
+
+            for i in range(Board.ROWS_NUMBER):
+                for j in range(Board.COLUMNS_NUMBER):
+                    self.process_cell(i, j)
+
+            for i in range(Board.ROWS_NUMBER):
+                self.place_water_row(i)
+                self.place_water_column(i)
+                self.place_boats_row(i)
+                self.place_boats_column(i)
+
+            self.replace_placeholders()
+
+            for i in range(Board.ROWS_NUMBER):
+                self.place_water_row(i)
+                self.place_water_column(i)
+                self.place_boats_row(i)
+                self.place_boats_column(i)
+
+            for i in range(Board.ROWS_NUMBER):
+                for j in range(Board.COLUMNS_NUMBER):
+                    self.process_cell(i, j)
+
+            if str == self.__str__():
+                break
 
     def __str__(self):
         """Returns a string representation of the Board as described in
@@ -394,6 +652,28 @@ class Board:
 
         return string
 
+    # def __str__(self):
+    #     """Returns a string representation of the Board as described in
+    #     topic 4.2 of the statement."""
+
+    #     string = ""
+
+    #     for index, row in enumerate(self.board):
+    #         for symbol in row:
+    #             if symbol == "":
+    #                 symbol = " "
+    #             elif symbol == "w":
+    #                 symbol = "."
+    #             string += symbol
+    #             string += " "
+    #         string += f"   {self.row_hints[index]}"
+    #         string += "\n"
+    #     string += "\n"
+    #     string += " ".join(map(lambda x: f"{x}", self.column_hints))
+    #     string += "\n"
+
+    #     return string
+
     @staticmethod
     def parse_instance() -> Board:
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -411,15 +691,43 @@ class Board:
             ["" for _ in range(Board.ROWS_NUMBER)] for _ in range(Board.COLUMNS_NUMBER)
         ]  # 10x10 empty board
 
-        for i in range(hints_number):
+        boats = [4, 3, 2, 1]
+        L_T_pos = []
+        for _ in range(hints_number):
             hint = sys.stdin.readline().strip().split("\t")[1:]
             row = int(hint[0])
             column = int(hint[1])
             letter = hint[2]
 
+            if letter == "C":
+                boats[0] -= 1
+
+            if letter in ("L", "T"):
+                L_T_pos.append((row, column, letter))
+
             board[row][column] = letter
 
-        return Board(row_hints, column_hints, board)
+        board_instance = Board(row_hints, column_hints, board, boats)
+
+        for symbol in L_T_pos:
+            row = symbol[0]
+            col = symbol[1]
+            i = 1
+            if symbol[2] == "L":
+                while board_instance.get_value(row, col + i) == "M":
+                    i += 1
+
+                if board_instance.get_value(row, col + i) == "R":
+                    board_instance.boats[i] -= 1
+
+            elif symbol[2] == "T":
+                while board_instance.get_value(row + i, col) == "M":
+                    i += 1
+
+                if board_instance.get_value(row + i, col) == "B":
+                    board_instance.boats[i] -= 1
+
+        return board_instance
 
     # TODO: outros metodos da classe
 
@@ -427,34 +735,31 @@ class Board:
 class Bimaru(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        # TODO
-        pass
+        super().__init__(BimaruState(board))
 
-    def actions(self, state: BimaruState):
+    def actions(self, state: BimaruState) -> List[Tuple[int, int, int, int]]:
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # TODO
-        pass
+        return state.board.calculate_placeable_boats()
 
     def result(self, state: BimaruState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        # TODO
-        pass
+        row, col, size, direction = action
+
+        return BimaruState(state.board.place_boat(row, col, size, direction))
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        # TODO
-        pass
+        return state.board.is_goal()
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        # TODO
-        pass
+        return node.state.board.get_empty_cells()
 
     # TODO: outros metodos da classe
 
@@ -466,36 +771,8 @@ if __name__ == "__main__":
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
     board_instance = Board.parse_instance()
+    board_instance.cleanup()
+    node = greedy_search(Bimaru(board_instance))
 
-    print(f"Row hints: {board_instance.row_hints}")
-    print(f"Column hints: {board_instance.column_hints}")
-
-    while True:
-        str = board_instance.__str__()
-
-        for i in range(Board.ROWS_NUMBER):
-            for j in range(Board.COLUMNS_NUMBER):
-                board_instance.process_cell(i, j)
-
-        for i in range(Board.ROWS_NUMBER):
-            board_instance.place_water_row(i)
-            board_instance.place_water_column(i)
-            board_instance.place_boats_row(i)
-            board_instance.place_boats_column(i)
-
-        board_instance.replace_placeholders()
-
-        for i in range(Board.ROWS_NUMBER):
-            board_instance.place_water_row(i)
-            board_instance.place_water_column(i)
-            board_instance.place_boats_row(i)
-            board_instance.place_boats_column(i)
-
-        for i in range(Board.ROWS_NUMBER):
-            for j in range(Board.COLUMNS_NUMBER):
-                board_instance.process_cell(i, j)
-        
-        if str == board_instance.__str__():
-            break
-
-    print(board_instance, end="\n---------------\n")
+    if node:
+        print(node.state.board, end="")

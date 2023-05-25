@@ -448,7 +448,7 @@ class Board:
                         i == size - 1
                         and self.get_value(row, col + i) == "R"
                         and total_boats + size - 1 - override_count
-                        <= self.row_hints[col]
+                        <= self.row_hints[row]
                     ):
                         placeable_boats.append(
                             (row, col, size, Board.HORIZONTAL_DIRECTION)

@@ -429,7 +429,7 @@ class Board:
                     "L",
                 ) and self.get_value(
                     row, col - 1
-                ) not in ("$", "L"):
+                ) not in ("$", "L", "M"):
                     if self.get_value(row, col) != "":
                         override_count += 1
 
@@ -488,7 +488,7 @@ class Board:
                     "T",
                 ) and self.get_value(
                     row - 1, col
-                ) not in ("$", "T"):
+                ) not in ("$", "T", "M"):
                     if self.get_value(row, col)!= "":
                         override_count += 1
 
@@ -547,7 +547,7 @@ class Board:
                         self.adjacent_horizontal_values(row, col)[1]
                         not in ("", "w", "W", Board.OUT_OF_BOUNDS)
                         and self.adjacent_horizontal_values(row, col)[0]
-                        not in ("", "$")
+                        not in ("", "$", "M")
                     ):
                         size = 0
                         i = 1
@@ -585,7 +585,7 @@ class Board:
                     elif self.adjacent_vertical_values(row, col)[0] == "T" or (
                         self.adjacent_vertical_values(row, col)[1]
                         not in ("", "w", "W", Board.OUT_OF_BOUNDS)
-                        and self.adjacent_vertical_values(row, col)[0] not in ("", "$")
+                        and self.adjacent_vertical_values(row, col)[0] not in ("", "$", "M")
                     ):
                         size = 0
                         i = 1

@@ -7,12 +7,7 @@
 # 103392 Nuno Goncalves
 
 import sys
-from search import (
-    Problem,
-    Node,
-    depth_first_tree_search,
-    compare_searchers
-)
+from search import Problem, Node, depth_first_tree_search, compare_searchers
 from typing import List, TypeVar, Tuple
 
 Board = TypeVar("Board", bound="Board")
@@ -47,7 +42,7 @@ class Board:
         column_hints: List[int],
         board: List[List[str]],
         boats: List[int],
-        empty_cells: int
+        empty_cells: int,
     ):
         self.board = [[item for item in row] for row in board]
         self.row_hints = [item for item in row_hints]
@@ -73,7 +68,7 @@ class Board:
                 if prev_symbol != symbol.upper():
                     if prev_symbol == "":
                         self.empty_cells -= 1
-                    
+
                     if prev_symbol not in ("$", "m") and symbol not in ("w", "W"):
                         self.row_hints[row] -= 1
                         self.column_hints[col] -= 1
@@ -149,8 +144,12 @@ class Board:
 
         hints = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-        return self.empty_cells == 0 and self.boats == [0, 0, 0, 0] \
-                and self.row_hints == hints and self.column_hints == hints
+        return (
+            self.empty_cells == 0
+            and self.boats == [0, 0, 0, 0]
+            and self.row_hints == hints
+            and self.column_hints == hints
+        )
 
     def process_cell(self, row: int, col: int):
         """Places water and $ around the given cell
@@ -348,7 +347,9 @@ class Board:
     def place_boat(self, row: int, col: int, size: int, direction: int) -> Board:
         """TODO"""
 
-        new_board = Board(self.row_hints, self.column_hints, self.board, self.boats, self.empty_cells)
+        new_board = Board(
+            self.row_hints, self.column_hints, self.board, self.boats, self.empty_cells
+        )
 
         if size == 1:
             new_board.place_symbol("c", row, col)
@@ -382,7 +383,7 @@ class Board:
         new_board.cleanup()
         return new_board
 
-    def calculate_placeable_boats(self) -> List[Tuple[int, int, int, int]]:
+    def calculate_placeable_boats(self) -> List[Tuple[int, int, int, int, int]]:
         if not self.is_valid:
             return []
 
@@ -399,7 +400,7 @@ class Board:
 
         # horizontal
         for row in range(Board.ROWS_NUMBER):
-            total_boats, placeholder_count = self.get_boats_row(row)
+            total_boats, _ = self.get_boats_row(row)
 
             if size - total_boats > self.row_hints[row]:
                 continue
@@ -431,11 +432,16 @@ class Board:
                     if (
                         i == size - 1
                         and self.get_value(row, col + i) == "R"
-                        and size - 1 - override_count
-                        <= self.row_hints[row]
+                        and size - 1 - override_count <= self.row_hints[row]
                     ):
                         placeable_boats.append(
-                            (row, col, size, Board.HORIZONTAL_DIRECTION)
+                            (
+                                row,
+                                col,
+                                size,
+                                Board.HORIZONTAL_DIRECTION,
+                                self.row_hints[row] - (size - 1 - override_count),
+                            )
                         )
 
                     if (
@@ -453,12 +459,18 @@ class Board:
                             "R",
                         ):
                             placeable_boats.append(
-                                (row, col, size, Board.HORIZONTAL_DIRECTION)
+                                (
+                                    row,
+                                    col,
+                                    size,
+                                    Board.HORIZONTAL_DIRECTION,
+                                    self.row_hints[row] - (size - override_count),
+                                )
                             )
 
         # vertical
         for col in range(Board.COLUMNS_NUMBER):
-            total_boats, placeholder_count = self.get_boats_col(col)
+            total_boats, _ = self.get_boats_col(col)
 
             if size - total_boats > self.column_hints[col]:
                 continue
@@ -473,7 +485,7 @@ class Board:
                 ) and self.get_value(
                     row - 1, col
                 ) not in ("$", "T", "M"):
-                    if self.get_value(row, col)!= "":
+                    if self.get_value(row, col) != "":
                         override_count += 1
 
                     i = 1
@@ -490,11 +502,16 @@ class Board:
                     if (
                         i == size - 1
                         and self.get_value(row + i, col) == "B"
-                        and size - 1 - override_count
-                        <= self.column_hints[col]
+                        and size - 1 - override_count <= self.column_hints[col]
                     ):
                         placeable_boats.append(
-                            (row, col, size, Board.VERTICAL_DIRECTION)
+                            (
+                                row,
+                                col,
+                                size,
+                                Board.VERTICAL_DIRECTION,
+                                self.column_hints[col] - (size - 1 - override_count),
+                            )
                         )
 
                     if (
@@ -502,13 +519,19 @@ class Board:
                         and self.get_value(row + i, col)
                         in ("", "w", "W", Board.OUT_OF_BOUNDS)
                         and self.get_value(row + i + 1, col) != "B"
-                        and size - override_count
-                        <= self.column_hints[col]
+                        and size - override_count <= self.column_hints[col]
                     ):
                         if size == 1 and self.get_value(row, col) in ("", "$"):
                             if (row, col) in possible_circles:
                                 placeable_boats.append(
-                                    (row, col, size, Board.VERTICAL_DIRECTION)
+                                    (
+                                        row,
+                                        col,
+                                        size,
+                                        Board.VERTICAL_DIRECTION,
+                                        self.column_hints[col]
+                                        - (size - override_count),
+                                    )
                                 )
                         elif size != 1 and self.get_value(row + i - 1, col) in (
                             "",
@@ -516,12 +539,16 @@ class Board:
                             "B",
                         ):
                             placeable_boats.append(
-                                (row, col, size, Board.VERTICAL_DIRECTION)
+                                (
+                                    row,
+                                    col,
+                                    size,
+                                    Board.VERTICAL_DIRECTION,
+                                    self.column_hints[col] - (size - override_count),
+                                )
                             )
 
-
-
-        return placeable_boats
+        return sorted(placeable_boats, key=lambda action: action[4])
 
     def replace_placeholders(self):
         for row in range(Board.ROWS_NUMBER):
@@ -569,7 +596,8 @@ class Board:
                     elif self.adjacent_vertical_values(row, col)[0] == "T" or (
                         self.adjacent_vertical_values(row, col)[1]
                         not in ("", "w", "W", Board.OUT_OF_BOUNDS)
-                        and self.adjacent_vertical_values(row, col)[0] not in ("", "$", "M")
+                        and self.adjacent_vertical_values(row, col)[0]
+                        not in ("", "$", "M")
                     ):
                         size = 0
                         i = 1
@@ -733,7 +761,6 @@ class Board:
 
             board_instance.place_symbol(letter, row, column)
 
-
         for symbol in L_T_pos:
             row = symbol[0]
             col = symbol[1]
@@ -772,7 +799,7 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        row, col, size, direction = action
+        row, col, size, direction, _ = action
 
         return BimaruState(state.board.place_boat(row, col, size, direction))
 

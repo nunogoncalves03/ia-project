@@ -7,7 +7,7 @@
 # 103392 Nuno Goncalves
 
 import sys
-from search import Problem, Node, depth_first_tree_search, compare_searchers
+from search import Problem, Node, depth_first_tree_search
 from typing import List, TypeVar, Tuple
 
 Board = TypeVar("Board", bound="Board")
@@ -23,8 +23,6 @@ class BimaruState:
 
     def __lt__(self, other):
         return self.id < other.id
-
-    # TODO: outros metodos da classe
 
 
 class Board:
@@ -53,6 +51,7 @@ class Board:
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
+
         if row >= 0 and row <= Board.ROWS_NUMBER - 1:
             if col >= 0 and col <= Board.COLUMNS_NUMBER - 1:
                 return self.board[row][col]
@@ -62,6 +61,7 @@ class Board:
     def place_symbol(self, symbol: str, row: int, col: int):
         """Places the given symbol in the given position if valid,
         does nothing otherwise."""
+
         if row >= 0 and row <= Board.ROWS_NUMBER - 1:
             if col >= 0 and col <= Board.COLUMNS_NUMBER - 1:
                 prev_symbol = self.get_value(row, col)
@@ -101,6 +101,7 @@ class Board:
 
     def get_empty_cells(self) -> int:
         """Returns the number of empty cells"""
+
         count = 0
         for row in range(Board.ROWS_NUMBER):
             for col in range(Board.COLUMNS_NUMBER):
@@ -109,38 +110,28 @@ class Board:
 
         return count
 
-    def get_boats_row(self, row) -> Tuple[int, int]:
-        """TODO"""
+    def get_boats_row(self, row) -> int:
+        """Returns the number of boat cells in a row"""
 
         count = 0
-        placeholder_count = 0
-
         for col in range(Board.COLUMNS_NUMBER):
             if self.get_value(row, col) not in ("", "w", "W", Board.OUT_OF_BOUNDS):
                 count += 1
 
-                if self.get_value(row, col) == "$":
-                    placeholder_count += 1
+        return count
 
-        return count, placeholder_count
-
-    def get_boats_col(self, col) -> Tuple[int, int]:
-        """TODO"""
+    def get_boats_col(self, col) -> int:
+        """Returns the number of boat cells in a column"""
 
         count = 0
-        placeholder_count = 0
-
         for row in range(Board.ROWS_NUMBER):
             if self.get_value(row, col) not in ("", "w", "W", Board.OUT_OF_BOUNDS):
                 count += 1
 
-                if self.get_value(row, col) == "$":
-                    placeholder_count += 1
-
-        return count, placeholder_count
+        return count
 
     def is_goal(self) -> bool:
-        """TODO"""
+        """Returns True if the board is solved"""
 
         hints = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
@@ -169,6 +160,8 @@ class Board:
             self.process_placeholder(row, col)
 
     def process_T_B(self, symbol: str, row: int, col: int):
+        """Places water and placeholders around T and B cells if possible"""
+
         # upper row
         self.place_symbol("w", row - 1, col - 1)
         # only cover the cell above the symbol if it's T
@@ -204,6 +197,8 @@ class Board:
             self.place_symbol("w", row + 2, col + 1)
 
     def process_L_R(self, symbol: str, row: int, col: int):
+        """Places water and placeholders around L and R cells if possible"""
+
         # upper row
         # only cover the further left side cell above the symbol if it's R
         if symbol in ("R", "r"):
@@ -239,6 +234,8 @@ class Board:
             self.place_symbol("w", row + 1, col + 2)
 
     def process_C(self, row: int, col: int):
+        """Places water and placeholders around C cells if possible"""
+
         # upper row
         self.place_symbol("w", row - 1, col - 1)
         self.place_symbol("w", row - 1, col)
@@ -253,6 +250,8 @@ class Board:
         self.place_symbol("w", row + 1, col + 1)
 
     def process_M(self, row: int, col: int):
+        """Places water and placeholders around M cells if possible"""
+
         vertical_adj_values = self.adjacent_vertical_values(row, col)
         horizontal_adj_values = self.adjacent_horizontal_values(row, col)
 
@@ -304,6 +303,8 @@ class Board:
                     self.place_symbol("w", i, j)
 
     def process_placeholder(self, row: int, col: int):
+        """Places water around placeholder cells if possible"""
+
         # diagonals
         self.place_symbol("w", row - 1, col - 1)
         self.place_symbol("w", row - 1, col + 1)
@@ -311,18 +312,24 @@ class Board:
         self.place_symbol("w", row + 1, col - 1)
 
     def place_water_row(self, row: int):
+        """Fills empty cells of a row with water if possible"""
+
         if self.row_hints[row] == 0:
             for col in range(Board.COLUMNS_NUMBER):
                 if self.board[row][col] == "":
                     self.place_symbol("w", row, col)
 
     def place_water_column(self, col: int):
+        """Fills empty cells of a column with water if possible"""
+
         if self.column_hints[col] == 0:
             for row in range(Board.ROWS_NUMBER):
                 if self.board[row][col] == "":
                     self.place_symbol("w", row, col)
 
     def place_boats_row(self, row: int):
+        """Fills empty cells of a row with placeholders if possible"""
+
         empty_counter = 0
         for col in range(Board.COLUMNS_NUMBER):
             if self.board[row][col] == "":
@@ -334,6 +341,8 @@ class Board:
                     self.place_symbol("$", row, col)
 
     def place_boats_column(self, col: int):
+        """Fills empty cells of a column with placeholders if possible"""
+
         empty_counter = 0
         for row in range(Board.ROWS_NUMBER):
             if self.board[row][col] == "":
@@ -345,7 +354,7 @@ class Board:
                     self.place_symbol("$", row, col)
 
     def place_boat(self, row: int, col: int, size: int, direction: int) -> Board:
-        """TODO"""
+        """Receives an action and places a boat with the given size and direction on the position (row, col)"""
 
         new_board = Board(
             self.row_hints, self.column_hints, self.board, self.boats, self.empty_cells
@@ -384,6 +393,8 @@ class Board:
         return new_board
 
     def calculate_placeable_boats(self) -> List[Tuple[int, int, int, int, int]]:
+        """Calculates all possible actions"""
+
         if not self.is_valid:
             return []
 
@@ -400,7 +411,7 @@ class Board:
 
         # horizontal
         for row in range(Board.ROWS_NUMBER):
-            total_boats, _ = self.get_boats_row(row)
+            total_boats = self.get_boats_row(row)
 
             if size - total_boats > self.row_hints[row]:
                 continue
@@ -470,7 +481,7 @@ class Board:
 
         # vertical
         for col in range(Board.COLUMNS_NUMBER):
-            total_boats, _ = self.get_boats_col(col)
+            total_boats = self.get_boats_col(col)
 
             if size - total_boats > self.column_hints[col]:
                 continue
@@ -551,6 +562,8 @@ class Board:
         return sorted(placeable_boats, key=lambda action: action[4])
 
     def replace_placeholders(self):
+        """Replaces placeholders with the respective boat if possible"""
+
         for row in range(Board.ROWS_NUMBER):
             for col in range(Board.COLUMNS_NUMBER):
                 if self.get_value(row, col) == "$":
@@ -657,6 +670,8 @@ class Board:
                             self.boats[0] -= 1
 
     def cleanup(self):
+        """Places water, placeholders and replaces placeholders if possible"""
+
         while True:
             empty_cells = self.empty_cells
 
@@ -699,28 +714,6 @@ class Board:
                     symbol = "."
                 string += symbol
             string += "\n"
-
-        return string
-
-    def __str2__(self):
-        """Returns a string representation of the Board as described in
-        topic 4.2 of the statement."""
-
-        string = ""
-
-        for index, row in enumerate(self.board):
-            for symbol in row:
-                if symbol == "":
-                    symbol = " "
-                elif symbol == "w":
-                    symbol = "."
-                string += symbol
-                string += " "
-            string += f"   {self.row_hints[index]}"
-            string += "\n"
-        string += "\n"
-        string += " ".join(map(lambda x: f"{x}", self.column_hints))
-        string += "\n"
 
         return string
 
@@ -781,17 +774,17 @@ class Board:
 
         return board_instance
 
-    # TODO: outros metodos da classe
-
 
 class Bimaru(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
+
         super().__init__(BimaruState(board))
 
     def actions(self, state: BimaruState) -> List[Tuple[int, int, int, int]]:
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
+
         return state.board.calculate_placeable_boats()
 
     def result(self, state: BimaruState, action):
@@ -799,6 +792,7 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
+
         row, col, size, direction, _ = action
 
         return BimaruState(state.board.place_boat(row, col, size, direction))
@@ -807,34 +801,18 @@ class Bimaru(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        # print(state.board)
-        # print(state.board.boats)
-        # print(state.board.calculate_placeable_boats())
-        # print("-----------------------------------------")
+
         return state.board.is_goal()
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        return (
-            node.state.board.boats[3] * 1000
-            + node.state.board.boats[2] * 400
-            + node.state.board.boats[1] * 150
-            + node.state.board.boats[0] * 50
-        )
-
-    # TODO: outros metodos da classe
+        pass
 
 
 if __name__ == "__main__":
-    # TODO:
-    # Ler o ficheiro do standard input,
-    # Usar uma técnica de procura para resolver a instância,
-    # Retirar a solução a partir do nó resultante,
-    # Imprimir para o standard output no formato indicado.
     board_instance = Board.parse_instance()
     board_instance.cleanup()
     node = depth_first_tree_search(Bimaru(board_instance))
 
     if node:
         print(node.state.board, end="")
-    # compare_searchers([Bimaru(board_instance)], None, [depth_first_tree_search])

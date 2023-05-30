@@ -99,17 +99,6 @@ class Board:
             self.get_value(row + 1, col - 1),
         )
 
-    def get_empty_cells(self) -> int:
-        """Returns the number of empty cells"""
-
-        count = 0
-        for row in range(Board.ROWS_NUMBER):
-            for col in range(Board.COLUMNS_NUMBER):
-                if self.get_value(row, col) == "":
-                    count += 1
-
-        return count
-
     def get_boats_row(self, row) -> int:
         """Returns the number of boat cells in a row"""
 
